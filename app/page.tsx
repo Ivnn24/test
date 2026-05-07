@@ -1,11 +1,9 @@
 "use client";
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Plus, Trash2, CheckCircle, Circle, Pencil, Save, 
-  ListTodo, CheckCheck, Clock, X, LayoutDashboard,
-  Search, Briefcase, User, Heart, ShoppingCart, Tag,
-  Zap, Coffee, Timer, ChevronRight, ChevronDown, Calendar,
-  Play, Pause, RotateCcw, Sparkles, Command, LucideIcon
+  Plus, Trash2, ListTodo, CheckCheck, Search, Briefcase, 
+  User, Heart, ShoppingCart, Zap, Coffee, Timer, ChevronRight, 
+  ChevronDown, Calendar, RotateCcw, Sparkles, Command, LucideIcon
 } from 'lucide-react';
 
 // --- TYPES & MODELS ---
@@ -50,7 +48,13 @@ const CATEGORIES: CategoryConfig[] = [
 
 export default function SimplyTask() {
   // --- STATE ---
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<Task[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('simply-task-ultra-v5');
+      return saved ? JSON.parse(saved) : [];
+    }
+    return [];
+  });
   const [input, setInput] = useState("");
   const [priority, setPriority] = useState<Priority>('medium');
   const [category, setCategory] = useState<Category>('work');
@@ -63,18 +67,6 @@ export default function SimplyTask() {
   const [timeLeft, setTimeLeft] = useState(1500);
   const [isActive, setIsActive] = useState(false);
 
-  // --- PERSISTENCE ---
-  useEffect(() => {
-    const saved = localStorage.getItem('simply-task-ultra-v5');
-    if (saved) {
-      try {
-        setTasks(JSON.parse(saved));
-      } catch (e) {
-        console.error("Failed to parse tasks", e);
-      }
-    }
-  }, []);
-
   useEffect(() => {
     localStorage.setItem('simply-task-ultra-v5', JSON.stringify(tasks));
   }, [tasks]);
@@ -84,11 +76,14 @@ export default function SimplyTask() {
     let interval: NodeJS.Timeout | null = null;
     if (isActive && timeLeft > 0) {
       interval = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
+        setTimeLeft((prev) => {
+          const newTime = prev - 1;
+          if (newTime === 0) {
+            setIsActive(false);
+          }
+          return newTime;
+        });
       }, 1000);
-    } else if (timeLeft === 0) {
-      setIsActive(false);
-      // Optional: Add notification sound here
     }
     return () => {
       if (interval) clearInterval(interval);
